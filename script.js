@@ -2,17 +2,36 @@
 
 let map, mapEvent;
 
+/**
+ * Base class for representing a workout (running or cycling).
+ *
+ * @class
+ */
 class Workout {
   data = new Date();
   id = (Date.now() + '').slice(-10);
   marker;
 
+  /**
+   * Creates a new workout instance.
+   *
+   * @param {Array<number>} coords The [latitude, longitude] coordinates of the workout.
+   * @param {number} distance The distance of the workout in kilometers.
+   * @param {number} duration The duration of the workout in minutes.
+   */
   constructor(coords, distance, duration) {
     this.coords = coords; // [lat, lng]
     this.distance = distance; // in km
     this.duration = duration; // in min
   }
 
+  /**
+   * Sets a descriptive title for the workout based on its type and date.
+   *
+   * @private
+   * @param {string} type The type of workout ('running' or 'cycling').
+   * @this {Object} Workout instance
+   */
   _setDescription(type) {
     const months = [
       'January',
@@ -35,9 +54,23 @@ class Workout {
   }
 }
 
+/**
+ * Class representing a running workout, inheriting from Workout.
+ *
+ * @class
+ * @extends Workout
+ */
 class Running extends Workout {
   type = 'running';
 
+  /**
+   * Creates a new running workout instance.
+   *
+   * @param {Array<number>} coords The [latitude, longitude] coordinates.
+   * @param {number} distance The distance in kilometers.
+   * @param {number} duration The duration in minutes.
+   * @param {number} cadance The cadence in steps per minute.
+   */
   constructor(coords, distance, duration, cadance) {
     super(coords, distance, duration);
     this.cadance = cadance;
@@ -45,6 +78,12 @@ class Running extends Workout {
     this._setDescription();
   }
 
+  /**
+   * Calculates the pace of the running workout (min/km).
+   *
+   * @returns {number} The pace in minutes per kilometer.
+   * @this {Object} Running instance
+   */
   calcPace() {
     // min/km
     this.pace = this.duration / this.distance;
@@ -52,9 +91,23 @@ class Running extends Workout {
   }
 }
 
+/**
+ * Class representing a cycling workout, inheriting from Workout.
+ *
+ * @class
+ * @extends Workout
+ */
 class Cycling extends Workout {
   type = 'cycling';
 
+  /**
+   * Creates a new cycling workout instance.
+   *
+   * @param {Array<number>} coords The [latitude, longitude] coordinates.
+   * @param {number} distance The distance in kilometers.
+   * @param {number} duration The duration in minutes.
+   * @param {number} elevationGain The elevation gain in meters.
+   */
   constructor(coords, distance, duration, elevationGain) {
     super(coords, distance, duration);
     this.elevationGain = elevationGain;
@@ -62,6 +115,12 @@ class Cycling extends Workout {
     this._setDescription();
   }
 
+  /**
+   * Calculates the speed of the cycling workout (km/h).
+   *
+   * @returns {number} The speed in kilometers per hour.
+   * @this {Object} Cycling instance
+   */
   calcSpeed() {
     // km/h
     this.speed = this.distance / this.duration / 60;
@@ -79,6 +138,11 @@ const inputDuration = document.querySelector('.form__input--duration');
 const inputCadence = document.querySelector('.form__input--cadence');
 const inputElevation = document.querySelector('.form__input--elevation');
 
+/**
+ * Main application class for managing workouts and map interactions.
+ *
+ * @class
+ */
 class App {
   #map;
   #mapZoomLevel = 13;
@@ -86,6 +150,11 @@ class App {
   #workouts = [];
   #markers = [];
 
+  /**
+   * Initializes the app by loading the user's position and setting up event listeners.
+   *
+   * @this {Object} App instance
+   */
   constructor() {
     // Get users positions
     this._getPosition();
@@ -102,6 +171,12 @@ class App {
     containerWorkouts.addEventListener('click', this._moveToPopup.bind(this));
   }
 
+  /**
+   * Retrieves the user's geolocation to initialize the map.
+   *
+   * @private
+   * @this {Object} App instance
+   */
   _getPosition() {
     // Find coordinates of current position and render map
     if (navigator.geolocation) {
@@ -114,6 +189,13 @@ class App {
     }
   }
 
+  /**
+   * Loads the Leaflet map at the user's geolocation.
+   *
+   * @private
+   * @param {GeolocationPosition} position The user's geolocation data.
+   * @this {Object} App instance
+   */
   _loadMap(position) {
     // Get current location
     const { latitude } = position.coords;
@@ -134,6 +216,13 @@ class App {
     });
   }
 
+  /**
+   * Displays the workout input form when the map is clicked.
+   *
+   * @private
+   * @param {Object} mapE The Leaflet map click event.
+   * @this {Object} App instance
+   */
   _showForm(mapE) {
     this.#mapEvent = mapE;
 
@@ -141,6 +230,12 @@ class App {
     inputDistance.focus();
   }
 
+  /**
+   * Hides the workout input form and clears input fields.
+   *
+   * @private
+   * @this {Object} App instance
+   */
   _hideForm() {
     //Empty inputs
     inputDistance.value =
@@ -153,11 +248,24 @@ class App {
     setTimeout(() => (form.style.display = 'grid'), 1000);
   }
 
+  /**
+   * Toggles visibility of cadence and elevation fields based on workout type.
+   *
+   * @private
+   * @this {Object} App instance
+   */
   _toggleElevationField() {
     inputElevation.closest('.form__row').classList.toggle('form__row--hidden');
     inputCadence.closest('.form__row').classList.toggle('form__row--hidden');
   }
 
+  /**
+   * Creates a new workout based on form input and renders it.
+   *
+   * @private
+   * @param {Event} e The form submission event.
+   * @this {Object} App instance
+   */
   _newWorkout(e) {
     const validInputs = (...inputs) =>
       inputs.every(inp => Number.isFinite(inp));
@@ -213,6 +321,13 @@ class App {
     this._setLocalStorage();
   }
 
+  /**
+   * Renders a workout in the sidebar list.
+   *
+   * @private
+   * @param {Workout} workout The workout object to render.
+   * @this {Object} App instance
+   */
   _renderWorkout(workout) {
     let html = `
         <li class="workout workout--${workout.type}" data-id="${workout.id}">
@@ -267,6 +382,13 @@ class App {
     form.insertAdjacentHTML('afterend', html);
   }
 
+  /**
+   * Renders a marker on the Leaflet map for a workout.
+   *
+   * @private
+   * @param {Workout} workout The workout object to mark.
+   * @this {Object} App instance
+   */
   _renderWorkoutMarker(workout) {
     const marker = L.marker(workout.coords)
       .addTo(this.#map)
@@ -287,6 +409,13 @@ class App {
     //console.log(workout);
   }
 
+  /**
+   * Moves the map view to a workout's coordinates or deletes a workout when clicked.
+   *
+   * @private
+   * @param {Event} e The click event on the workout list.
+   * @this {Object} App instance
+   */
   _moveToPopup(e) {
     const workoutEl = e.target.closest('.workout');
 
@@ -319,10 +448,22 @@ class App {
     });
   }
 
+  /**
+   * Saves workouts to local storage.
+   *
+   * @private
+   * @this {Object} App instance
+   */
   _setLocalStorage() {
     localStorage.setItem('workouts', JSON.stringify(this.#workouts));
   }
 
+  /**
+   * Loads workouts from local storage and renders them.
+   *
+   * @private
+   * @this {Object} App instance
+   */
   _getLocalStorage() {
     const data = JSON.parse(localStorage.getItem('workouts'));
     //console.log(data);
@@ -338,6 +479,11 @@ class App {
 
   _deleteMarker(coords) {}
 
+  /**
+   * Resets the application by clearing local storage and reloading the page.
+   *
+   * @this {Object} App instance
+   */
   reset() {
     localStorage.removeItem('workouts');
     location.reload();
